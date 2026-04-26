@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PopOps | Overview</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: {
+              electric: "#2563EB",
+              surface: "#FFFFFF",
+              background: "#F8FAFC",
+              onSurface: "#0F172A",
+              outline: "#64748B",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="bg-background font-sans text-onSurface h-screen flex overflow-hidden"
+  >
+    <aside class="w-64 bg-surface border-r border-slate-200 flex flex-col">
+      <div class="p-6">
+        <h1 class="text-2xl font-bold text-electric">
+          PopOps<br /><span class="text-onSurface">Dashboard</span>
+        </h1>
+      </div>
+      <nav class="flex-1 px-4 space-y-2 mt-4">
+        <a
+          href="/dashboard.html"
+          class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-electric rounded-xl font-semibold transition-colors"
+          >Overview</a
+        >
+        <a
+          href="/users.html"
+          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
+          >Users</a
+        >
+        <a
+          href="/projects.html"
+          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
+          >Projects</a
+        >
+        <a
+          href="/reports.html"
+          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
+          >Error Reports</a
+        >
+      </nav>
+      <div class="p-4 border-t border-slate-200">
+        <button
+          id="logout-btn"
+          class="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl font-semibold transition-colors"
+        >
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+      <header class="mb-8">
+        <h2 class="text-3xl font-bold">Hello Adeel 👋</h2>
+        <p class="text-outline mt-1">Here is the overview of PopOps.</p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div
+          class="bg-surface p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 flex flex-col justify-center"
+        >
+          <p class="text-sm font-semibold text-outline mb-2">Total Users</p>
+          <h3 id="stat-users" class="text-3xl font-bold text-slate-800">
+            <div class="h-9 w-16 bg-slate-200 rounded-lg animate-pulse"></div>
+          </h3>
+        </div>
+
+        <div
+          class="bg-surface p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 flex flex-col justify-center"
+        >
+          <p class="text-sm font-semibold text-outline mb-2">
+            Registered Projects
+          </p>
+          <h3 id="stat-projects" class="text-3xl font-bold text-slate-800">
+            <div class="h-9 w-20 bg-slate-200 rounded-lg animate-pulse"></div>
+          </h3>
+        </div>
+
+        <div
+          class="bg-surface p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 flex flex-col justify-center"
+        >
+          <p class="text-sm font-semibold text-outline mb-2">Active Messages</p>
+          <h3 id="stat-messages" class="text-3xl font-bold text-slate-800">
+            <div class="h-9 w-12 bg-slate-200 rounded-lg animate-pulse"></div>
+          </h3>
+        </div>
+      </div>
+
+      <div
+        class="bg-surface rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden mb-8"
+      >
+        <div class="px-6 py-5 border-b border-slate-100">
+          <h3 class="text-lg font-bold">New Users</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="bg-slate-50/80 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100"
+              >
+                <th class="px-6 py-4 font-semibold">User Details</th>
+                <th class="px-6 py-4 font-semibold">Plan</th>
+                <th class="px-6 py-4 font-semibold text-center">Projects</th>
+                <th class="px-6 py-4 font-semibold">Joined</th>
+                <th class="px-6 py-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body" class="text-sm">
+              <tr class="animate-pulse border-b border-slate-50">
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-32 mb-2"></div>
+                  <div class="h-3 bg-slate-100 rounded w-24"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-6 bg-slate-200 rounded-xl w-20"></div>
+                </td>
+                <td class="px-6 py-4 flex justify-center">
+                  <div class="h-6 bg-slate-200 rounded-lg w-16 mt-2"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-20"></div>
+                </td>
+                <td class="px-6 py-4 flex justify-end">
+                  <div class="h-8 bg-slate-200 rounded-xl w-8"></div>
+                </td>
+              </tr>
+              <tr class="animate-pulse border-b border-slate-50">
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-28 mb-2"></div>
+                  <div class="h-3 bg-slate-100 rounded w-20"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-6 bg-slate-200 rounded-xl w-20"></div>
+                </td>
+                <td class="px-6 py-4 flex justify-center">
+                  <div class="h-6 bg-slate-200 rounded-lg w-16 mt-2"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-24"></div>
+                </td>
+                <td class="px-6 py-4 flex justify-end">
+                  <div class="h-8 bg-slate-200 rounded-xl w-8"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div
+        class="bg-surface rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden"
+      >
+        <div class="px-6 py-5 border-b border-slate-100">
+          <h3 class="text-lg font-bold text-red-500">Recent Crashes</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="bg-slate-50/80 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100"
+              >
+                <th class="px-6 py-4 font-semibold">Date</th>
+                <th class="px-6 py-4 font-semibold">Device & OS</th>
+                <th class="px-6 py-4 font-semibold">Stack Trace Preview</th>
+                <th class="px-6 py-4 font-semibold text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="error-table-body" class="text-sm">
+              <tr class="animate-pulse border-b border-slate-50">
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-24"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 bg-slate-200 rounded w-32 mb-2"></div>
+                  <div class="h-3 bg-slate-100 rounded w-16"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-8 bg-slate-100 rounded-lg w-48"></div>
+                </td>
+                <td class="px-6 py-4 flex justify-end">
+                  <div class="h-8 bg-slate-200 rounded-xl w-20"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="trace-modal"
+      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-opacity"
+    >
+      <div
+        class="bg-surface w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]"
+      >
+        <div
+          class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-3xl"
+        >
+          <h3 class="text-xl font-bold text-onSurface">Crash Log Details</h3>
+          <button
+            id="close-modal-icon"
+            class="text-outline hover:text-red-500 focus:outline-none"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <div
+          class="p-6 overflow-y-auto flex-1 bg-slate-50 border-y border-slate-100"
+        >
+          <pre
+            id="modal-trace-text"
+            class="text-sm font-mono text-slate-700 whitespace-pre-wrap break-words selection:bg-blue-200"
+          ></pre>
+        </div>
+        <div class="px-6 py-4 bg-white rounded-b-3xl flex justify-end">
+          <button
+            id="close-modal-btn"
+            class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-onSurface font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/admin.js"></script>
+  </body>
+</html>
