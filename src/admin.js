@@ -277,7 +277,7 @@ function renderErrorTable(errors) {
   );
 
   if (errorEntries.length === 0) {
-    errorTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-b-3xl">No crashes reported! Your SDK is perfectly stable. 🎉</td></tr>`;
+    errorTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-b-3xl">No crashes reported! App is perfectly stable. 🎉</td></tr>`;
     return;
   }
 

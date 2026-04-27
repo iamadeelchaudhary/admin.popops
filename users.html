@@ -4,14 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PopOps | Users</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -30,113 +33,233 @@
       };
     </script>
   </head>
-  <body
-    class="bg-background font-sans text-onSurface h-screen flex overflow-hidden"
-  >
-    <aside class="w-64 bg-surface border-r border-slate-200 flex flex-col">
-      <div class="p-6">
-        <h1 class="text-2xl font-bold text-electric">
-          PopOps<br /><span class="text-onSurface">Dashboard</span>
-        </h1>
+  <body>
+    <div class="bg-mesh"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-mark"><i class="fa-solid fa-bolt"></i></div>
+        <div class="logo-text">PopOps<br /><span>Dashboard</span></div>
       </div>
-      <nav class="flex-1 px-4 space-y-2 mt-4">
-        <a
-          href="/dashboard.html"
-          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
-          >Overview</a
-        >
-        <a
-          href="/users.html"
-          class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-electric rounded-xl font-semibold transition-colors"
-          >Users</a
-        >
-        <a
-          href="/projects.html"
-          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
-          >Projects</a
-        >
-        <a
-          href="/reports.html"
-          class="flex items-center gap-3 px-4 py-3 text-outline hover:bg-slate-50 hover:text-onSurface rounded-xl font-semibold transition-colors"
-          >Error Reports</a
-        >
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-grid-2"></i>
+          Overview
+        </a>
+        <a href="/users.html" class="nav-link active">
+          <i class="fa-solid fa-users"></i>
+          Users
+        </a>
+        <a href="/projects.html" class="nav-link">
+          <i class="fa-solid fa-layer-group"></i>
+          Projects
+        </a>
+        <a href="/reports.html" class="nav-link">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Error Reports
+        </a>
       </nav>
-      <div class="p-4 border-t border-slate-200">
-        <button
-          id="logout-btn"
-          class="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl font-semibold transition-colors"
-        >
-          Sign Out
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="user-mini" style="width: 100%">
+          <div class="user-mini-avatar">
+            <i
+              class="fa-solid fa-right-from-bracket"
+              style="font-size: 13px"
+            ></i>
+          </div>
+          <div class="user-mini-info">
+            <div class="user-mini-name">Sign Out</div>
+            <div class="user-mini-role">End admin session</div>
+          </div>
         </button>
       </div>
     </aside>
 
-    <main class="flex-1 p-8 overflow-y-auto">
-      <header class="mb-8">
-        <h2 class="text-3xl font-bold">All Users</h2>
+    <div class="main-wrapper">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <div>
+            <div class="page-title">All Users</div>
+            <div class="page-subtitle">
+              Manage your user base and subscriptions
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search users..." />
+          </div>
+          <button class="icon-btn" id="themeToggle" title="Toggle theme">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+          <button class="icon-btn" title="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-dot"></span>
+          </button>
+        </div>
       </header>
-      <div
-        class="bg-surface rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 overflow-hidden"
-      >
-        <div class="px-6 py-5 border-b border-slate-100">
-          <h3 class="text-lg font-bold">Full User Database</h3>
+
+      <main class="content">
+        <div class="card" style="animation-delay: 0.1s">
+          <div class="card-header">
+            <div class="card-title">
+              <i
+                class="fa-solid fa-database"
+                style="margin-right: 8px; color: var(--brand)"
+              ></i
+              >Full User Database
+            </div>
+            <div style="display: flex; gap: 8px">
+              <button class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-filter" style="font-size: 10px"></i>
+                Filter
+              </button>
+              <button class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-download" style="font-size: 10px"></i>
+                Export
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x: auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User Details</th>
+                    <th>Plan</th>
+                    <th style="text-align: center">Projects</th>
+                    <th>Joined</th>
+                    <th style="text-align: right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="user-table-body">
+                  <tr>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 16px; width: 140px"
+                      ></div>
+                      <div
+                        class="skeleton"
+                        style="height: 12px; width: 100px; margin-top: 6px"
+                      ></div>
+                    </td>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 28px; width: 80px; border-radius: 20px"
+                      ></div>
+                    </td>
+                    <td style="text-align: center">
+                      <div
+                        class="skeleton"
+                        style="
+                          height: 24px;
+                          width: 60px;
+                          margin: 0 auto;
+                          border-radius: 8px;
+                        "
+                      ></div>
+                    </td>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 16px; width: 80px"
+                      ></div>
+                    </td>
+                    <td style="text-align: right">
+                      <div
+                        class="skeleton"
+                        style="
+                          height: 32px;
+                          width: 32px;
+                          margin-left: auto;
+                          border-radius: 10px;
+                        "
+                      ></div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 16px; width: 120px"
+                      ></div>
+                      <div
+                        class="skeleton"
+                        style="height: 12px; width: 90px; margin-top: 6px"
+                      ></div>
+                    </td>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 28px; width: 80px; border-radius: 20px"
+                      ></div>
+                    </td>
+                    <td style="text-align: center">
+                      <div
+                        class="skeleton"
+                        style="
+                          height: 24px;
+                          width: 60px;
+                          margin: 0 auto;
+                          border-radius: 8px;
+                        "
+                      ></div>
+                    </td>
+                    <td>
+                      <div
+                        class="skeleton"
+                        style="height: 16px; width: 80px"
+                      ></div>
+                    </td>
+                    <td style="text-align: right">
+                      <div
+                        class="skeleton"
+                        style="
+                          height: 32px;
+                          width: 32px;
+                          margin-left: auto;
+                          border-radius: 10px;
+                        "
+                      ></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr
-                class="bg-slate-50/80 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100"
-              >
-                <th class="px-6 py-4 font-semibold">User Details</th>
-                <th class="px-6 py-4 font-semibold">Plan</th>
-                <th class="px-6 py-4 font-semibold text-center">Projects</th>
-                <th class="px-6 py-4 font-semibold">Joined</th>
-                <th class="px-6 py-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="user-table-body" class="text-sm">
-              <tr class="animate-pulse border-b border-slate-50">
-                <td class="px-6 py-4">
-                  <div class="h-4 bg-slate-200 rounded w-32 mb-2"></div>
-                  <div class="h-3 bg-slate-100 rounded w-24"></div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="h-6 bg-slate-200 rounded-xl w-20"></div>
-                </td>
-                <td class="px-6 py-4 flex justify-center">
-                  <div class="h-6 bg-slate-200 rounded-lg w-16 mt-2"></div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="h-4 bg-slate-200 rounded w-20"></div>
-                </td>
-                <td class="px-6 py-4 flex justify-end">
-                  <div class="h-8 bg-slate-200 rounded-xl w-8"></div>
-                </td>
-              </tr>
-              <tr class="animate-pulse border-b border-slate-50">
-                <td class="px-6 py-4">
-                  <div class="h-4 bg-slate-200 rounded w-28 mb-2"></div>
-                  <div class="h-3 bg-slate-100 rounded w-20"></div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="h-6 bg-slate-200 rounded-xl w-20"></div>
-                </td>
-                <td class="px-6 py-4 flex justify-center">
-                  <div class="h-6 bg-slate-200 rounded-lg w-16 mt-2"></div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="h-4 bg-slate-200 rounded w-24"></div>
-                </td>
-                <td class="px-6 py-4 flex justify-end">
-                  <div class="h-8 bg-slate-200 rounded-xl w-8"></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
 
     <script type="module" src="/src/admin.js"></script>
+    <script>
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("sidebarOverlay");
+      const menuToggle = document.getElementById("menuToggle");
+      function toggleSidebar() {
+        sidebar.classList.toggle("mobile-open");
+        overlay.classList.toggle("active");
+      }
+      menuToggle.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      const themeToggle = document.getElementById("themeToggle");
+      let isDark = false;
+      themeToggle.addEventListener("click", () => {
+        isDark = !isDark;
+        document.body.setAttribute("data-theme", isDark ? "dark" : "");
+        themeToggle.innerHTML = isDark
+          ? '<i class="fa-solid fa-sun"></i>'
+          : '<i class="fa-solid fa-moon"></i>';
+      });
+    </script>
   </body>
 </html>
