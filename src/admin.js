@@ -22,12 +22,10 @@ onAuthStateChanged(auth, (user) => {
 
 // Global Click Listener for Dropdowns
 document.addEventListener("click", (e) => {
-  // Close all open dropdowns
   document
     .querySelectorAll(".action-dropdown")
     .forEach((d) => d.classList.add("hidden"));
 
-  // If clicked on a "More Options" button, toggle its specific dropdown
   const btn = e.target.closest(".more-options-btn");
   if (btn) {
     e.stopPropagation();
@@ -65,7 +63,32 @@ async function loadPageData() {
   }
 }
 
-// 3. Dashboard Overview Logic
+// ===== SORT HELPERS (Newest First) =====
+function sortByTimestampDesc(entries, timestampField = "timestamp") {
+  return entries.sort((a, b) => {
+    const timeA = a[1][timestampField] || 0;
+    const timeB = b[1][timestampField] || 0;
+    return timeB - timeA;
+  });
+}
+
+function sortUsersByCreatedAtDesc(entries) {
+  return entries.sort((a, b) => {
+    const timeA = a[1].createdAt ? new Date(a[1].createdAt).getTime() : 0;
+    const timeB = b[1].createdAt ? new Date(b[1].createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+}
+
+function sortProjectsByTimestampDesc(flatProjects) {
+  return flatProjects.sort((a, b) => {
+    const timeA = a.data.timestamp || a.data.createdAt || 0;
+    const timeB = b.data.timestamp || b.data.createdAt || 0;
+    return timeB - timeA;
+  });
+}
+
+// 3. Dashboard Overview Logic — TOP 10 NEWEST
 function loadOverview(usersData, projectsData, messagesData, errorsData) {
   // Top Stats
   const statUsers = document.getElementById("stat-users");
@@ -87,22 +110,19 @@ function loadOverview(usersData, projectsData, messagesData, errorsData) {
   }
   if (statMessages) statMessages.innerText = messageCount;
 
-  // 5-Day Filter Logic
-  const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  // Sort users by createdAt descending, take top 10 newest
+  const sortedUsers = sortUsersByCreatedAtDesc(Object.entries(usersData)).slice(
+    0,
+    10,
+  );
+  const recentUsers = Object.fromEntries(sortedUsers);
 
-  const recentUsers = {};
-  Object.entries(usersData).forEach(([uid, user]) => {
-    if (user.createdAt && new Date(user.createdAt).getTime() >= fiveDaysAgo) {
-      recentUsers[uid] = user;
-    }
-  });
-
-  const recentErrors = {};
-  Object.entries(errorsData).forEach(([eid, err]) => {
-    if (err.timestamp >= fiveDaysAgo) {
-      recentErrors[eid] = err;
-    }
-  });
+  // Sort errors by timestamp descending, take top 10 newest
+  const sortedErrors = sortByTimestampDesc(Object.entries(errorsData)).slice(
+    0,
+    10,
+  );
+  const recentErrors = Object.fromEntries(sortedErrors);
 
   renderUserTable(recentUsers, projectsData);
   renderErrorTable(recentErrors);
@@ -123,20 +143,22 @@ function copyToClipboard(text, element) {
   });
 }
 
-// 4. Render Users
+// 4. Render Users — SORTED by createdAt DESC (newest first)
 function renderUserTable(users, projectsData) {
   const userTableBody = document.getElementById("user-table-body");
   if (!userTableBody) return;
-  userTableBody.innerHTML = ""; // This clears the skeleton loaders
+  userTableBody.innerHTML = "";
 
-  Object.entries(users).forEach(([uid, user]) => {
+  // Convert to array, sort by createdAt descending (newest first), then render
+  const userEntries = sortUsersByCreatedAtDesc(Object.entries(users));
+
+  userEntries.forEach(([uid, user]) => {
     const date = user.createdAt
       ? new Date(user.createdAt).toLocaleDateString()
       : "Unknown";
     const currentPlan = user.subscriptionPlan || "HOBBY";
     const fcmToken = user.fcmToken || "";
 
-    // Calculate total projects for this specific user
     const userProjectsCount =
       projectsData && projectsData[uid]
         ? Object.keys(projectsData[uid]).length
@@ -167,7 +189,7 @@ function renderUserTable(users, projectsData) {
           <button data-target="dropdown-${uid}" class="more-options-btn p-2 text-slate-400 hover:text-electric hover:bg-blue-50 rounded-xl transition-colors focus:outline-none">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
           </button>
-          
+
           <div id="dropdown-${uid}" class="action-dropdown hidden absolute right-8 top-10 mt-1 w-44 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-20 py-1 overflow-hidden">
             <button class="copy-action-btn w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-electric transition-colors" data-copy="${uid}">
               Copy UID
@@ -210,43 +232,48 @@ function renderUserTable(users, projectsData) {
   });
 }
 
-// 5. Render Projects
+// 5. Render Projects — SORTED by timestamp DESC (newest first)
 function renderProjectTable(projects, messages) {
   const projectTableBody = document.getElementById("project-table-body");
   if (!projectTableBody) return;
   projectTableBody.innerHTML = "";
 
+  // Flatten projects into array with metadata for sorting
+  let flatProjects = [];
   Object.entries(projects).forEach(([uid, userProjects]) => {
     Object.entries(userProjects).forEach(([projectId, projectData]) => {
-      let msgCount =
-        messages && messages[projectId]
-          ? Object.keys(messages[projectId]).length
-          : 0;
-
-      // FIX: Aggressive checking for the project name fallback
-      const finalProjectName =
-        projectData.projectName ||
-        projectData.name ||
-        projectData.appName ||
-        projectId;
-
-      const row = `
-        <tr class="border-b border-slate-50 hover:bg-slate-50/80 transition-colors">
-          <td class="px-6 py-4">
-            <p class="font-bold text-slate-800">${finalProjectName}</p>
-            <p class="text-xs text-slate-400 font-mono mt-0.5">${projectId}</p>
-          </td>
-          <td class="px-6 py-4 text-slate-500 font-mono text-xs">${uid}</td>
-          <td class="px-6 py-4 font-bold text-slate-700 text-center">${msgCount}</td>
-          <td class="px-6 py-4 text-right">
-            <button data-uid="${uid}" data-project-id="${projectId}" class="delete-project-btn px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs tracking-wide rounded-xl transition-all shadow-sm">
-              Delete
-            </button>
-          </td>
-        </tr>
-      `;
-      projectTableBody.innerHTML += row;
+      flatProjects.push({ uid, projectId, data: projectData });
     });
+  });
+
+  // Sort by timestamp/createdAt descending (newest first)
+  flatProjects = sortProjectsByTimestampDesc(flatProjects);
+
+  flatProjects.forEach(({ uid, projectId, data }) => {
+    let msgCount =
+      messages && messages[projectId]
+        ? Object.keys(messages[projectId]).length
+        : 0;
+
+    const finalProjectName =
+      data.projectName || data.name || data.appName || projectId;
+
+    const row = `
+      <tr class="border-b border-slate-50 hover:bg-slate-50/80 transition-colors">
+        <td class="px-6 py-4">
+          <p class="font-bold text-slate-800">${finalProjectName}</p>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">${projectId}</p>
+        </td>
+        <td class="px-6 py-4 text-slate-500 font-mono text-xs">${uid}</td>
+        <td class="px-6 py-4 font-bold text-slate-700 text-center">${msgCount}</td>
+        <td class="px-6 py-4 text-right">
+          <button data-uid="${uid}" data-project-id="${projectId}" class="delete-project-btn px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs tracking-wide rounded-xl transition-all shadow-sm">
+            Delete
+          </button>
+        </td>
+      </tr>
+    `;
+    projectTableBody.innerHTML += row;
   });
 
   document.querySelectorAll(".delete-project-btn").forEach((btn) => {
@@ -266,18 +293,17 @@ function renderProjectTable(projects, messages) {
   });
 }
 
-// 6. Render Errors & Modal
+// 6. Render Errors & Modal — SORTED by timestamp DESC (newest first)
 function renderErrorTable(errors) {
   const errorTableBody = document.getElementById("error-table-body");
   if (!errorTableBody) return;
   errorTableBody.innerHTML = "";
 
-  const errorEntries = Object.entries(errors).sort(
-    (a, b) => b[1].timestamp - a[1].timestamp,
-  );
+  // Sort by timestamp descending (newest first)
+  const errorEntries = sortByTimestampDesc(Object.entries(errors));
 
   if (errorEntries.length === 0) {
-    errorTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-b-3xl">No crashes reported! App is perfectly stable. 🎉</td></tr>`;
+    errorTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-b-3xl">No crashes reported! Your SDK is perfectly stable. 🎉</td></tr>`;
     return;
   }
 
