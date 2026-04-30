@@ -9,7 +9,8 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'dashboard.html'),
         users: resolve(__dirname, 'users.html'),
         projects: resolve(__dirname, 'projects.html'),
-        reports: resolve(__dirname, 'reports.html')
+        reports: resolve(__dirname, 'reports.html'),
+        notification: resolve(__dirname, 'notification.html')
       }
     }
   }
