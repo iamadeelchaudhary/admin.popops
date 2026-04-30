@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PopOps | Notification Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: {
+              electric: "#2563EB",
+              surface: "#FFFFFF",
+              background: "#F8FAFC",
+              onSurface: "#0F172A",
+              outline: "#64748B",
+            },
+          },
+        },
+      };
+    </script>
+    <base target="_blank" />
+  </head>
+  <body>
+    <div class="bg-mesh"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-mark"><i class="fa-solid fa-bolt"></i></div>
+        <div class="logo-text">PopOps<br /><span>Dashboard</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="/dashboard.html" class="nav-link">
+          <i class="fa-solid fa-grid-2"></i>
+          Overview
+        </a>
+        <a href="/users.html" class="nav-link">
+          <i class="fa-solid fa-users"></i>
+          Users
+        </a>
+        <a href="/projects.html" class="nav-link">
+          <i class="fa-solid fa-layer-group"></i>
+          Projects
+        </a>
+        <a href="/reports.html" class="nav-link">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Error Reports
+        </a>
+        <div class="nav-section-title">Tools</div>
+        <a href="/notification.html" class="nav-link active">
+          <i class="fa-solid fa-paper-plane"></i>
+          Notification Panel
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="user-mini" style="width: 100%">
+          <div class="user-mini-avatar">
+            <i
+              class="fa-solid fa-right-from-bracket"
+              style="font-size: 13px"
+            ></i>
+          </div>
+          <div class="user-mini-info">
+            <div class="user-mini-name">Sign Out</div>
+            <div class="user-mini-role">End admin session</div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <div>
+            <div class="page-title">Broadcast Center</div>
+            <div class="page-subtitle">
+              Send immediate or scheduled push notifications to your users
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search..." />
+          </div>
+          <button class="icon-btn" id="themeToggle" title="Toggle theme">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+          <button class="icon-btn" title="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div
+          class="card"
+          style="max-width: 800px; margin: 0 auto; animation-delay: 0.1s"
+        >
+          <div class="card-header">
+            <div class="card-title">
+              <i
+                class="fa-solid fa-bell"
+                style="margin-right: 8px; color: var(--brand)"
+              ></i
+              >Compose Notification
+            </div>
+          </div>
+          <div class="card-body" style="padding: 28px 24px">
+            <form id="notificationForm" class="space-y-5">
+              <!-- Auth -->
+              <div
+                class="p-4 rounded-xl"
+                style="background: var(--bg); border: 1px solid var(--border)"
+              >
+                <label
+                  class="block text-xs font-bold uppercase tracking-wider mb-2"
+                  style="color: var(--text-muted)"
+                  >Authentication</label
+                >
+                <div>
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    style="color: var(--text-secondary)"
+                    >Admin Secret</label
+                  >
+                  <input
+                    type="password"
+                    id="adminSecret"
+                    required
+                    value="popops-super-secret-key-2024"
+                    class="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  />
+                </div>
+              </div>
+
+              <!-- Content -->
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    style="color: var(--text-secondary)"
+                    >Notification Title</label
+                  >
+                  <input
+                    type="text"
+                    id="title"
+                    required
+                    placeholder="e.g. Milestone Reached! 🎉"
+                    class="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    style="color: var(--text-secondary)"
+                    >Notification Body</label
+                  >
+                  <textarea
+                    id="body"
+                    required
+                    rows="3"
+                    placeholder="e.g. Check out the latest updates we just released..."
+                    class="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all resize-none"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    style="color: var(--text-secondary)"
+                    >On-Click Link
+                    <span style="color: var(--text-muted); font-weight: 400"
+                      >(Optional)</span
+                    ></label
+                  >
+                  <input
+                    type="url"
+                    id="link"
+                    placeholder="https://..."
+                    class="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  />
+                  <p class="text-xs mt-1" style="color: var(--text-muted)">
+                    If provided, tapping the notification opens this link
+                  </p>
+                </div>
+              </div>
+
+              <!-- Targeting -->
+              <div
+                class="p-4 rounded-xl"
+                style="background: var(--bg); border: 1px solid var(--border)"
+              >
+                <label
+                  class="block text-xs font-bold uppercase tracking-wider mb-3"
+                  style="color: var(--text-muted)"
+                  >Target Audience</label
+                >
+                <div class="flex gap-4 mb-4 flex-wrap">
+                  <label
+                    class="flex items-center gap-2 text-sm cursor-pointer"
+                    style="color: var(--text-secondary)"
+                  >
+                    <input
+                      type="radio"
+                      name="targetType"
+                      value="all"
+                      checked
+                      class="w-4 h-4"
+                      style="accent-color: var(--brand)"
+                    />
+                    All Users
+                  </label>
+                  <label
+                    class="flex items-center gap-2 text-sm cursor-pointer"
+                    style="color: var(--text-secondary)"
+                  >
+                    <input
+                      type="radio"
+                      name="targetType"
+                      value="uid"
+                      class="w-4 h-4"
+                      style="accent-color: var(--brand)"
+                    />
+                    Specific UID
+                  </label>
+                  <label
+                    class="flex items-center gap-2 text-sm cursor-pointer"
+                    style="color: var(--text-secondary)"
+                  >
+                    <input
+                      type="radio"
+                      name="targetType"
+                      value="token"
+                      class="w-4 h-4"
+                      style="accent-color: var(--brand)"
+                    />
+                    Specific Token
+                  </label>
+                </div>
+
+                <div id="targetValueContainer" class="hidden">
+                  <input
+                    type="text"
+                    id="targetValue"
+                    placeholder="Enter UID or FCM Token here..."
+                    class="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  />
+                </div>
+              </div>
+
+              <!-- Scheduling -->
+              <div
+                class="p-4 rounded-xl"
+                style="background: var(--bg); border: 1px solid var(--border)"
+              >
+                <label
+                  class="flex items-center gap-2 text-sm font-semibold cursor-pointer"
+                  style="color: var(--text-secondary)"
+                >
+                  <input
+                    type="checkbox"
+                    id="enableSchedule"
+                    class="w-4 h-4"
+                    style="accent-color: var(--brand)"
+                  />
+                  Schedule for later
+                </label>
+
+                <div id="scheduleContainer" class="hidden mt-4">
+                  <label
+                    class="block text-sm font-semibold mb-1"
+                    style="color: var(--text-secondary)"
+                    >Send Date & Time</label
+                  >
+                  <input
+                    type="datetime-local"
+                    id="scheduleTime"
+                    class="w-full md:w-1/2 px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      font-family: &quot;Sora&quot;, sans-serif;
+                    "
+                    onfocus="
+                      this.style.borderColor = 'var(--brand)';
+                      this.style.boxShadow = '0 0 0 3px var(--brand-glow)';
+                    "
+                    onblur="
+                      this.style.borderColor = 'var(--border)';
+                      this.style.boxShadow = 'none';
+                    "
+                  />
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <div class="pt-2">
+                <button
+                  type="submit"
+                  id="submitBtn"
+                  class="w-full btn btn-primary py-3.5 text-sm"
+                  style="gap: 10px"
+                >
+                  <i class="fa-solid fa-paper-plane"></i>
+                  Dispatch Notification
+                </button>
+              </div>
+
+              <!-- Feedback Message -->
+              <div
+                id="statusMessage"
+                class="hidden p-4 rounded-xl text-sm font-semibold text-center"
+              ></div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+    <script>
+      // Mobile sidebar toggle
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("sidebarOverlay");
+      const menuToggle = document.getElementById("menuToggle");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("mobile-open");
+        overlay.classList.toggle("active");
+      }
+      menuToggle.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme toggle
+      const themeToggle = document.getElementById("themeToggle");
+      let isDark = false;
+      themeToggle.addEventListener("click", () => {
+        isDark = !isDark;
+        document.body.setAttribute("data-theme", isDark ? "dark" : "");
+        themeToggle.innerHTML = isDark
+          ? '<i class="fa-solid fa-sun"></i>'
+          : '<i class="fa-solid fa-moon"></i>';
+      });
+
+      // Hardcoded API URL
+      const API_URL =
+        "https://us-central1-popops-9ec2e.cloudfunctions.net/apiSendNotification";
+
+      // UI Logic for Targeting
+      const targetRadios = document.querySelectorAll(
+        'input[name="targetType"]',
+      );
+      const targetValueContainer = document.getElementById(
+        "targetValueContainer",
+      );
+      const targetValueInput = document.getElementById("targetValue");
+
+      targetRadios.forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          if (e.target.value === "all") {
+            targetValueContainer.classList.add("hidden");
+            targetValueInput.required = false;
+            targetValueInput.value = "";
+          } else {
+            targetValueContainer.classList.remove("hidden");
+            targetValueInput.required = true;
+            targetValueInput.placeholder =
+              e.target.value === "uid"
+                ? "Enter User UID..."
+                : "Enter FCM Device Token...";
+          }
+        });
+      });
+
+      // UI Logic for Scheduling
+      const enableSchedule = document.getElementById("enableSchedule");
+      const scheduleContainer = document.getElementById("scheduleContainer");
+      const scheduleTime = document.getElementById("scheduleTime");
+
+      enableSchedule.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          scheduleContainer.classList.remove("hidden");
+          scheduleTime.required = true;
+        } else {
+          scheduleContainer.classList.add("hidden");
+          scheduleTime.required = false;
+          scheduleTime.value = "";
+        }
+      });
+
+      // Form Submission Logic
+      document
+        .getElementById("notificationForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const submitBtn = document.getElementById("submitBtn");
+          const statusMessage = document.getElementById("statusMessage");
+          const originalBtnHtml = submitBtn.innerHTML;
+
+          // Gather Data
+          const payload = {
+            adminSecret: document.getElementById("adminSecret").value,
+            title: document.getElementById("title").value,
+            body: document.getElementById("body").value,
+            link: document.getElementById("link").value,
+            targetType: document.querySelector(
+              'input[name="targetType"]:checked',
+            ).value,
+            targetValue: document.getElementById("targetValue").value,
+            scheduleTime: enableSchedule.checked
+              ? document.getElementById("scheduleTime").value
+              : null,
+          };
+
+          // UI Loading State
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+          statusMessage.classList.add("hidden");
+          statusMessage.className =
+            "hidden p-4 rounded-xl text-sm font-semibold text-center";
+
+          try {
+            const response = await fetch(API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              statusMessage.textContent = data.message;
+              statusMessage.style.cssText =
+                "background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2);";
+              // Reset form fields
+              document.getElementById("title").value = "";
+              document.getElementById("body").value = "";
+              document.getElementById("link").value = "";
+            } else {
+              statusMessage.textContent = data.error || "Something went wrong";
+              statusMessage.style.cssText =
+                "background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.2);";
+            }
+          } catch (error) {
+            statusMessage.textContent =
+              "Network Error: Make sure your Cloud Function URL is correct and deployed.";
+            statusMessage.style.cssText =
+              "background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.2);";
+          } finally {
+            statusMessage.classList.remove("hidden");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+          }
+        });
+    </script>
+  </body>
+</html>
