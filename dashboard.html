@@ -62,6 +62,10 @@
           <i class="fa-solid fa-triangle-exclamation"></i>
           Error Reports
         </a>
+        <a href="/snippets.html" class="nav-link">
+          <i class="fa-solid fa-code"></i>
+          Manage SDK Snippets
+        </a>
         <div class="nav-section-title">Tools</div>
         <a href="/notification.html" class="nav-link">
           <i class="fa-solid fa-paper-plane"></i>
@@ -99,6 +103,25 @@
           </div>
         </div>
         <div class="header-right">
+          <div
+            class="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100 hidden"
+            id="maintenance-container"
+          >
+            <span class="text-sm font-bold text-slate-700"
+              ><i class="fa-solid fa-hammer text-orange-500 mr-2"></i
+              >Maintenance</span
+            >
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                id="maintenance-toggle"
+                class="sr-only peer"
+              />
+              <div
+                class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"
+              ></div>
+            </label>
+          </div>
           <div class="search-wrap">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" placeholder="Search users, projects..." />

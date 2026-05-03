@@ -10,7 +10,8 @@ export default defineConfig({
         users: resolve(__dirname, 'users.html'),
         projects: resolve(__dirname, 'projects.html'),
         reports: resolve(__dirname, 'reports.html'),
-        notification: resolve(__dirname, 'notification.html')
+        notification: resolve(__dirname, 'notification.html'),
+        snippets: resolve(__dirname, 'snippets.html')
       }
     }
   }

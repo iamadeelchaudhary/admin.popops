@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PopOps | SDK Snippets</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="src/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: {
+              electric: "#2563EB",
+              surface: "#FFFFFF",
+              background: "#F8FAFC",
+              onSurface: "#0F172A",
+              outline: "#64748B",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body>
+    <div class="bg-mesh"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-mark"><i class="fa-solid fa-bolt"></i></div>
+        <div class="logo-text">PopOps<br /><span>Dashboard</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="/dashboard.html" class="nav-link"
+          ><i class="fa-solid fa-grid-2"></i> Overview</a
+        >
+        <a href="/users.html" class="nav-link"
+          ><i class="fa-solid fa-users"></i> Users</a
+        >
+        <a href="/projects.html" class="nav-link"
+          ><i class="fa-solid fa-layer-group"></i> Projects</a
+        >
+        <a href="/reports.html" class="nav-link"
+          ><i class="fa-solid fa-triangle-exclamation"></i> Error Reports</a
+        >
+        <a href="/snippets.html" class="nav-link active"
+          ><i class="fa-solid fa-code"></i> Manage SDK Snippets</a
+        >
+        <div class="nav-section-title">Tools</div>
+        <a href="/notification.html" class="nav-link"
+          ><i class="fa-solid fa-paper-plane"></i> Notification Panel</a
+        >
+      </nav>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="user-mini" style="width: 100%">
+          <div class="user-mini-avatar">
+            <i
+              class="fa-solid fa-right-from-bracket"
+              style="font-size: 13px"
+            ></i>
+          </div>
+          <div class="user-mini-info">
+            <div class="user-mini-name">Sign Out</div>
+            <div class="user-mini-role">End admin session</div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <div>
+            <div class="page-title">SDK Snippets</div>
+            <div class="page-subtitle">
+              Manage integration steps for the Android SDK.
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i
+                class="fa-solid fa-laptop-code"
+                style="margin-right: 8px; color: var(--electric)"
+              ></i>
+              Integration Steps
+            </div>
+            <button
+              id="btn-create-snippet"
+              class="btn bg-electric text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <i class="fa-solid fa-plus mr-2"></i>New Snippet
+            </button>
+          </div>
+          <div class="card-body">
+            <div style="overflow-x: auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; text-align: center">Order</th>
+                    <th>Step Details</th>
+                    <th>Target File</th>
+                    <th style="text-align: right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="snippets-table-body">
+                  <!-- JS Injects Snippets Here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="snippet-modal" class="modal-overlay hidden">
+      <div class="modal-box w-[600px] max-w-[95%]">
+        <div class="modal-header">
+          <div class="modal-title" id="snippet-modal-title">
+            <i class="fa-solid fa-pen-to-square mr-2 text-electric"></i>Edit
+            Snippet
+          </div>
+          <button id="close-snippet-modal" class="modal-close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body flex flex-col gap-4">
+          <input type="hidden" id="snippet-id" />
+
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label class="block text-xs font-bold text-slate-500 mb-1"
+                >Step Title</label
+              >
+              <input
+                type="text"
+                id="snippet-title"
+                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:border-electric focus:ring-2 focus:ring-blue-100 transition-all"
+                placeholder="e.g. Gradle Dependency"
+              />
+            </div>
+            <div class="w-24">
+              <label class="block text-xs font-bold text-slate-500 mb-1"
+                >Order #</label
+              >
+              <input
+                type="number"
+                id="snippet-order"
+                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:border-electric focus:ring-2 focus:ring-blue-100 transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1"
+              >Target File</label
+            >
+            <input
+              type="text"
+              id="snippet-file"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:border-electric focus:ring-2 focus:ring-blue-100 transition-all"
+              placeholder="e.g. build.gradle"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1"
+              >Description</label
+            >
+            <textarea
+              id="snippet-description"
+              rows="2"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-electric focus:ring-2 focus:ring-blue-100 transition-all"
+              placeholder="Explain what the developer needs to do..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1"
+              >Code Snippet</label
+            >
+            <textarea
+              id="snippet-code"
+              rows="5"
+              class="w-full bg-slate-800 text-slate-100 font-mono text-xs rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-electric transition-all"
+              spellcheck="false"
+              placeholder="Paste code here..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer flex justify-end gap-3">
+          <button
+            id="cancel-snippet-btn"
+            class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            id="save-snippet-btn"
+            class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-electric hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/30"
+          >
+            Save Snippet
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/admin.js"></script>
+    <script>
+      const sidebar = document.getElementById("sidebar"),
+        overlay = document.getElementById("sidebarOverlay"),
+        menuToggle = document.getElementById("menuToggle");
+      function toggleSidebar() {
+        sidebar.classList.toggle("mobile-open");
+        overlay.classList.toggle("active");
+      }
+      menuToggle.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+    </script>
+  </body>
+</html>

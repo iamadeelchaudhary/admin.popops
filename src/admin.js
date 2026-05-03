@@ -6,6 +6,10 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
+  getDoc,
+  addDoc,
+  query,
+  orderBy,
 } from "firebase/firestore";
 import { auth, db } from "./firebaseSetup.js";
 
@@ -48,42 +52,90 @@ async function loadPageData() {
     const projectsData = {};
     const errorsData = {};
 
-    // 1. Fetch Users
-    const usersSnap = await getDocs(collection(db, "users"));
-    usersSnap.forEach((doc) => {
-      usersData[doc.id] = doc.data();
-    });
-
-    // 2. Fetch Projects (Flattened structure)
-    const projectsSnap = await getDocs(collection(db, "projects"));
-    projectsSnap.forEach((doc) => {
-      const pData = doc.data();
-      const ownerUid = pData.uid || "unknown";
-
-      if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
-      projectsData[ownerUid][doc.id] = pData;
-    });
-
-    // 3. Fetch Error Reports
-    const errorsSnap = await getDocs(collection(db, "errorReports"));
-    errorsSnap.forEach((doc) => {
-      errorsData[doc.id] = doc.data();
-    });
-
-    // ROUTER LOGIC (Removed messagesData parameter)
+    // ROUTER LOGIC
     if (path.includes("dashboard.html") || path === "/" || path === "") {
+      // Initialize Maintenance Toggle
+      const maintContainer = document.getElementById("maintenance-container");
+      const maintToggle = document.getElementById("maintenance-toggle");
+
+      if (maintToggle && maintContainer) {
+        maintContainer.classList.remove("hidden"); // Show it only when JS loads
+
+        // Fetch current state
+        const configDoc = await getDoc(doc(db, "config", "maintenance"));
+        if (configDoc.exists()) {
+          maintToggle.checked = configDoc.data().isMaintenance === true;
+        }
+
+        // Listen for changes and update Firestore
+        maintToggle.addEventListener("change", async (e) => {
+          const isChecked = e.target.checked;
+          try {
+            await updateDoc(doc(db, "config", "maintenance"), {
+              isMaintenance: isChecked,
+            });
+          } catch (err) {
+            alert("Failed to update maintenance mode. Check security rules.");
+            e.target.checked = !isChecked; // revert
+          }
+        });
+      }
+
+      const usersSnap = await getDocs(collection(db, "users"));
+      usersSnap.forEach((doc) => {
+        usersData[doc.id] = doc.data();
+      });
+
+      const projectsSnap = await getDocs(collection(db, "projects"));
+      projectsSnap.forEach((doc) => {
+        const pData = doc.data();
+        const ownerUid = pData.uid || "unknown";
+        if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
+        projectsData[ownerUid][doc.id] = pData;
+      });
+
+      const errorsSnap = await getDocs(collection(db, "errorReports"));
+      errorsSnap.forEach((doc) => {
+        errorsData[doc.id] = doc.data();
+      });
+
       loadOverview(usersData, projectsData, errorsData);
     } else if (path.includes("users.html")) {
+      const usersSnap = await getDocs(collection(db, "users"));
+      usersSnap.forEach((doc) => {
+        usersData[doc.id] = doc.data();
+      });
+      const projectsSnap = await getDocs(collection(db, "projects"));
+      projectsSnap.forEach((doc) => {
+        const pData = doc.data();
+        const ownerUid = pData.uid || "unknown";
+        if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
+        projectsData[ownerUid][doc.id] = pData;
+      });
       renderUserTable(usersData, projectsData);
     } else if (path.includes("projects.html")) {
+      const projectsSnap = await getDocs(collection(db, "projects"));
+      projectsSnap.forEach((doc) => {
+        const pData = doc.data();
+        const ownerUid = pData.uid || "unknown";
+        if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
+        projectsData[ownerUid][doc.id] = pData;
+      });
       renderProjectTable(projectsData);
     } else if (path.includes("reports.html")) {
+      const errorsSnap = await getDocs(collection(db, "errorReports"));
+      errorsSnap.forEach((doc) => {
+        errorsData[doc.id] = doc.data();
+      });
       renderErrorTable(errorsData);
+    } else if (path.includes("snippets.html")) {
+      loadSnippetsData();
     }
   } catch (error) {
     console.error("Error fetching Firestore data:", error);
   }
 }
+
 // ===== SORT HELPERS =====
 function sortByTimestampDesc(entries, timestampField = "timestamp") {
   return entries.sort((a, b) => {
@@ -123,7 +175,6 @@ function loadOverview(usersData, projectsData, errorsData) {
   for (const uid in projectsData) {
     for (const projectId in projectsData[uid]) {
       projectCount++;
-      // Harness the counter maintained by your Cloud Functions and Android SDK
       messageCount += projectsData[uid][projectId].totalActiveMessages || 0;
     }
   }
@@ -254,7 +305,6 @@ function renderProjectTable(projects) {
   flatProjects = sortProjectsByTimestampDesc(flatProjects);
 
   flatProjects.forEach(({ uid, projectId, data }) => {
-    // Read the counter directly from the document
     let msgCount = data.totalActiveMessages || 0;
     const finalProjectName =
       data.projectName || data.name || data.appName || projectId;
@@ -351,4 +401,166 @@ function renderErrorTable(errors) {
       }
     });
   }
+}
+
+// ==========================================
+// 7. SDK Snippets CRUD Logic
+// ==========================================
+async function loadSnippetsData() {
+  try {
+    const snippetsRef = collection(db, "sdk_snippets");
+    const q = query(snippetsRef, orderBy("order", "asc"));
+    const snapshot = await getDocs(q);
+
+    let snippetsHtml = "";
+    let snippetsData = {};
+
+    if (snapshot.empty) {
+      snippetsHtml = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 font-semibold bg-slate-50/50 rounded-b-3xl">No snippets found. Click 'New Snippet' to add one.</td></tr>`;
+    } else {
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        snippetsData[doc.id] = data;
+
+        snippetsHtml += `
+          <tr class="border-b border-slate-50 hover:bg-slate-50/80 transition-colors">
+            <td class="px-6 py-4 text-center">
+              <span class="inline-flex items-center justify-center bg-blue-50 text-electric font-bold w-8 h-8 rounded-full text-sm">
+                ${data.order || 0}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <p class="font-bold text-slate-800">${data.title}</p>
+              <p class="text-xs text-slate-500 mt-1 max-w-md truncate" title="${data.description}">${data.description}</p>
+            </td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-500">
+              <span class="bg-slate-100 px-2.5 py-1 rounded-md">${data.file || "N/A"}</span>
+            </td>
+            <td class="px-6 py-4 text-right whitespace-nowrap">
+              <button data-id="${doc.id}" class="edit-snippet-btn px-4 py-1.5 bg-slate-100 text-slate-700 hover:bg-electric hover:text-white font-bold text-xs rounded-xl transition-all shadow-sm mr-2">Edit</button>
+              <button data-id="${doc.id}" class="delete-snippet-btn px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs rounded-xl transition-all shadow-sm">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    const tableBody = document.getElementById("snippets-table-body");
+    if (tableBody) tableBody.innerHTML = snippetsHtml;
+
+    attachSnippetListeners(snippetsData);
+  } catch (error) {
+    console.error("Error loading snippets:", error);
+  }
+}
+
+function attachSnippetListeners(snippetsData) {
+  const modal = document.getElementById("snippet-modal");
+  if (!modal) return;
+
+  const idInput = document.getElementById("snippet-id");
+  const titleInput = document.getElementById("snippet-title");
+  const descInput = document.getElementById("snippet-description");
+  const fileInput = document.getElementById("snippet-file");
+  const orderInput = document.getElementById("snippet-order");
+  const codeInput = document.getElementById("snippet-code");
+  const modalTitle = document.getElementById("snippet-modal-title");
+
+  const closeModal = () => modal.classList.add("hidden");
+
+  // Create Button
+  const createBtn = document.getElementById("btn-create-snippet");
+  if (createBtn) {
+    createBtn.onclick = () => {
+      idInput.value = "";
+      titleInput.value = "";
+      descInput.value = "";
+      fileInput.value = "";
+      orderInput.value = "";
+      codeInput.value = "";
+      modalTitle.innerHTML = `<i class="fa-solid fa-plus mr-2 text-electric"></i>Create New Snippet`;
+      modal.classList.remove("hidden");
+    };
+  }
+
+  // Edit Buttons
+  document.querySelectorAll(".edit-snippet-btn").forEach((btn) => {
+    btn.onclick = (e) => {
+      const id = e.target.getAttribute("data-id");
+      const data = snippetsData[id];
+      idInput.value = id;
+      titleInput.value = data.title || "";
+      descInput.value = data.description || "";
+      fileInput.value = data.file || "";
+      orderInput.value = data.order || "";
+      codeInput.value = data.snippet || "";
+      modalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square mr-2 text-electric"></i>Edit Snippet`;
+      modal.classList.remove("hidden");
+    };
+  });
+
+  // Delete Buttons
+  document.querySelectorAll(".delete-snippet-btn").forEach((btn) => {
+    btn.onclick = async (e) => {
+      const id = e.target.getAttribute("data-id");
+      if (confirm(`Are you sure you want to delete this snippet?`)) {
+        e.target.disabled = true;
+        try {
+          await deleteDoc(doc(db, "sdk_snippets", id));
+          loadSnippetsData();
+        } catch (error) {
+          alert("Failed to delete snippet.");
+          e.target.disabled = false;
+        }
+      }
+    };
+  });
+
+  // Save Button
+  const saveBtn = document.getElementById("save-snippet-btn");
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      if (
+        !titleInput.value.trim() ||
+        !codeInput.value.trim() ||
+        !orderInput.value
+      ) {
+        alert("Title, Order, and Code are required.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML =
+        '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+      const payload = {
+        title: titleInput.value.trim(),
+        description: descInput.value.trim(),
+        file: fileInput.value.trim(),
+        order: parseInt(orderInput.value),
+        snippet: codeInput.value,
+      };
+
+      try {
+        if (idInput.value) {
+          // Update
+          await updateDoc(doc(db, "sdk_snippets", idInput.value), payload);
+        } else {
+          // Create
+          await addDoc(collection(db, "sdk_snippets"), payload);
+        }
+        closeModal();
+        loadSnippetsData();
+      } catch (error) {
+        alert("Failed to save snippet.");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = "Save Snippet";
+      }
+    };
+  }
+
+  // Close Modal Listeners
+  document.getElementById("close-snippet-modal").onclick = closeModal;
+  document.getElementById("cancel-snippet-btn").onclick = closeModal;
 }
