@@ -46,7 +46,6 @@ async function loadPageData() {
   try {
     const usersData = {};
     const projectsData = {};
-    const messagesData = {}; // Keeping structure for stat calculation
     const errorsData = {};
 
     // 1. Fetch Users
@@ -61,35 +60,23 @@ async function loadPageData() {
       const pData = doc.data();
       const ownerUid = pData.uid || "unknown";
 
-      // Rebuild the grouped structure expected by the UI renderers
       if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
       projectsData[ownerUid][doc.id] = pData;
     });
 
-    // 3. Fetch Active Messages (using Collection Group Query for efficiency)
-    const messagesSnap = await getDocs(collection(db, "messages")); // Requires index if filtering by active
-    messagesSnap.forEach((doc) => {
-      const mData = doc.data();
-      const parentProjectId = doc.ref.parent.parent?.id;
-      if (parentProjectId) {
-        if (!messagesData[parentProjectId]) messagesData[parentProjectId] = {};
-        messagesData[parentProjectId][doc.id] = mData;
-      }
-    });
-
-    // 4. Fetch Error Reports
+    // 3. Fetch Error Reports
     const errorsSnap = await getDocs(collection(db, "errorReports"));
     errorsSnap.forEach((doc) => {
       errorsData[doc.id] = doc.data();
     });
 
-    // ROUTER LOGIC
+    // ROUTER LOGIC (Removed messagesData parameter)
     if (path.includes("dashboard.html") || path === "/" || path === "") {
-      loadOverview(usersData, projectsData, messagesData, errorsData);
+      loadOverview(usersData, projectsData, errorsData);
     } else if (path.includes("users.html")) {
       renderUserTable(usersData, projectsData);
     } else if (path.includes("projects.html")) {
-      renderProjectTable(projectsData, messagesData);
+      renderProjectTable(projectsData);
     } else if (path.includes("reports.html")) {
       renderErrorTable(errorsData);
     }
@@ -97,7 +84,6 @@ async function loadPageData() {
     console.error("Error fetching Firestore data:", error);
   }
 }
-
 // ===== SORT HELPERS =====
 function sortByTimestampDesc(entries, timestampField = "timestamp") {
   return entries.sort((a, b) => {
@@ -124,7 +110,7 @@ function sortProjectsByTimestampDesc(flatProjects) {
 }
 
 // 3. Dashboard Overview Logic
-function loadOverview(usersData, projectsData, messagesData, errorsData) {
+function loadOverview(usersData, projectsData, errorsData) {
   const statUsers = document.getElementById("stat-users");
   const statProjects = document.getElementById("stat-projects");
   const statMessages = document.getElementById("stat-messages");
@@ -132,16 +118,17 @@ function loadOverview(usersData, projectsData, messagesData, errorsData) {
   if (statUsers) statUsers.innerText = Object.keys(usersData).length;
 
   let projectCount = 0;
-  for (const uid in projectsData)
-    projectCount += Object.keys(projectsData[uid]).length;
-  if (statProjects) statProjects.innerText = projectCount;
-
   let messageCount = 0;
-  for (const pid in messagesData) {
-    for (const mid in messagesData[pid]) {
-      if (messagesData[pid][mid].isActive === true) messageCount++;
+
+  for (const uid in projectsData) {
+    for (const projectId in projectsData[uid]) {
+      projectCount++;
+      // Harness the counter maintained by your Cloud Functions and Android SDK
+      messageCount += projectsData[uid][projectId].totalActiveMessages || 0;
     }
   }
+
+  if (statProjects) statProjects.innerText = projectCount;
   if (statMessages) statMessages.innerText = messageCount;
 
   const sortedUsers = sortUsersByCreatedAtDesc(Object.entries(usersData)).slice(
@@ -252,7 +239,7 @@ function renderUserTable(users, projectsData) {
 }
 
 // 5. Render Projects
-function renderProjectTable(projects, messages) {
+function renderProjectTable(projects) {
   const projectTableBody = document.getElementById("project-table-body");
   if (!projectTableBody) return;
   projectTableBody.innerHTML = "";
@@ -267,10 +254,8 @@ function renderProjectTable(projects, messages) {
   flatProjects = sortProjectsByTimestampDesc(flatProjects);
 
   flatProjects.forEach(({ uid, projectId, data }) => {
-    let msgCount =
-      messages && messages[projectId]
-        ? Object.keys(messages[projectId]).length
-        : 0;
+    // Read the counter directly from the document
+    let msgCount = data.totalActiveMessages || 0;
     const finalProjectName =
       data.projectName || data.name || data.appName || projectId;
 
@@ -295,10 +280,7 @@ function renderProjectTable(projects, messages) {
       const targetProjectId = e.target.getAttribute("data-project-id");
       if (confirm(`Delete project ${targetProjectId} and all messages?`)) {
         try {
-          // Flattened delete
           await deleteDoc(doc(db, "projects", targetProjectId));
-          // Note: Full sub-collection deletion in client is tough.
-          // Ideally rely on the recursive delete Cloud Function we setup earlier for complete sweeps.
           loadPageData();
         } catch (error) {
           alert("Failed to delete project.");
