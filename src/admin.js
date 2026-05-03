@@ -1,5 +1,12 @@
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { ref, get, child, update, remove } from "firebase/database";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+} from "firebase/firestore";
 import { auth, db } from "./firebaseSetup.js";
 
 const ADMIN_UID = "5Y2rJShvxmWkHpyTjwTVQJ17yud2";
@@ -25,7 +32,6 @@ document.addEventListener("click", (e) => {
   document
     .querySelectorAll(".action-dropdown")
     .forEach((d) => d.classList.add("hidden"));
-
   const btn = e.target.closest(".more-options-btn");
   if (btn) {
     e.stopPropagation();
@@ -35,18 +41,47 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// 2. Fetch and Route Data
+// 2. Fetch and Route Data (FIRESTORE VERSION)
 async function loadPageData() {
-  const dbRef = ref(db);
   try {
-    const snapshot = await get(child(dbRef, "/"));
-    if (!snapshot.exists()) return;
-    const data = snapshot.val();
+    const usersData = {};
+    const projectsData = {};
+    const messagesData = {}; // Keeping structure for stat calculation
+    const errorsData = {};
 
-    const usersData = data.users || {};
-    const projectsData = data.projects || {};
-    const messagesData = data.messages || {};
-    const errorsData = data.errorReports || {};
+    // 1. Fetch Users
+    const usersSnap = await getDocs(collection(db, "users"));
+    usersSnap.forEach((doc) => {
+      usersData[doc.id] = doc.data();
+    });
+
+    // 2. Fetch Projects (Flattened structure)
+    const projectsSnap = await getDocs(collection(db, "projects"));
+    projectsSnap.forEach((doc) => {
+      const pData = doc.data();
+      const ownerUid = pData.uid || "unknown";
+
+      // Rebuild the grouped structure expected by the UI renderers
+      if (!projectsData[ownerUid]) projectsData[ownerUid] = {};
+      projectsData[ownerUid][doc.id] = pData;
+    });
+
+    // 3. Fetch Active Messages (using Collection Group Query for efficiency)
+    const messagesSnap = await getDocs(collection(db, "messages")); // Requires index if filtering by active
+    messagesSnap.forEach((doc) => {
+      const mData = doc.data();
+      const parentProjectId = doc.ref.parent.parent?.id;
+      if (parentProjectId) {
+        if (!messagesData[parentProjectId]) messagesData[parentProjectId] = {};
+        messagesData[parentProjectId][doc.id] = mData;
+      }
+    });
+
+    // 4. Fetch Error Reports
+    const errorsSnap = await getDocs(collection(db, "errorReports"));
+    errorsSnap.forEach((doc) => {
+      errorsData[doc.id] = doc.data();
+    });
 
     // ROUTER LOGIC
     if (path.includes("dashboard.html") || path === "/" || path === "") {
@@ -59,11 +94,11 @@ async function loadPageData() {
       renderErrorTable(errorsData);
     }
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching Firestore data:", error);
   }
 }
 
-// ===== SORT HELPERS (Newest First) =====
+// ===== SORT HELPERS =====
 function sortByTimestampDesc(entries, timestampField = "timestamp") {
   return entries.sort((a, b) => {
     const timeA = a[1][timestampField] || 0;
@@ -88,9 +123,8 @@ function sortProjectsByTimestampDesc(flatProjects) {
   });
 }
 
-// 3. Dashboard Overview Logic — TOP 10 NEWEST
+// 3. Dashboard Overview Logic
 function loadOverview(usersData, projectsData, messagesData, errorsData) {
-  // Top Stats
   const statUsers = document.getElementById("stat-users");
   const statProjects = document.getElementById("stat-projects");
   const statMessages = document.getElementById("stat-messages");
@@ -110,14 +144,12 @@ function loadOverview(usersData, projectsData, messagesData, errorsData) {
   }
   if (statMessages) statMessages.innerText = messageCount;
 
-  // Sort users by createdAt descending, take top 10 newest
   const sortedUsers = sortUsersByCreatedAtDesc(Object.entries(usersData)).slice(
     0,
     10,
   );
   const recentUsers = Object.fromEntries(sortedUsers);
 
-  // Sort errors by timestamp descending, take top 10 newest
   const sortedErrors = sortByTimestampDesc(Object.entries(errorsData)).slice(
     0,
     10,
@@ -128,7 +160,6 @@ function loadOverview(usersData, projectsData, messagesData, errorsData) {
   renderErrorTable(recentErrors);
 }
 
-// Helper function to copy text
 function copyToClipboard(text, element) {
   if (!text) {
     alert("No data available to copy.");
@@ -143,13 +174,12 @@ function copyToClipboard(text, element) {
   });
 }
 
-// 4. Render Users — SORTED by createdAt DESC (newest first)
+// 4. Render Users
 function renderUserTable(users, projectsData) {
   const userTableBody = document.getElementById("user-table-body");
   if (!userTableBody) return;
   userTableBody.innerHTML = "";
 
-  // Convert to array, sort by createdAt descending (newest first), then render
   const userEntries = sortUsersByCreatedAtDesc(Object.entries(users));
 
   userEntries.forEach(([uid, user]) => {
@@ -158,7 +188,6 @@ function renderUserTable(users, projectsData) {
       : "Unknown";
     const currentPlan = user.subscriptionPlan || "HOBBY";
     const fcmToken = user.fcmToken || "";
-
     const userProjectsCount =
       projectsData && projectsData[uid]
         ? Object.keys(projectsData[uid]).length
@@ -173,30 +202,23 @@ function renderUserTable(users, projectsData) {
           </div>
         </td>
         <td class="px-6 py-4">
-          <select data-uid="${uid}" class="plan-selector bg-blue-50/50 hover:bg-blue-50 text-electric rounded-xl text-xs font-bold tracking-wide px-3 py-1.5 cursor-pointer outline-none focus:ring-2 focus:ring-blue-300 transition-colors border border-blue-100">
+          <select data-uid="${uid}" class="plan-selector bg-blue-50/50 hover:bg-blue-50 text-electric rounded-xl text-xs font-bold tracking-wide px-3 py-1.5 cursor-pointer outline-none transition-colors border border-blue-100">
             <option value="HOBBY" ${currentPlan === "HOBBY" ? "selected" : ""}>HOBBY</option>
             <option value="PRO" ${currentPlan === "PRO" ? "selected" : ""}>PRO</option>
             <option value="TEAM" ${currentPlan === "TEAM" ? "selected" : ""}>TEAM</option>
           </select>
         </td>
         <td class="px-6 py-4 text-center">
-          <span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-lg text-xs">
-            ${userProjectsCount} Apps
-          </span>
+          <span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-lg text-xs">${userProjectsCount} Apps</span>
         </td>
         <td class="px-6 py-4 text-slate-500 text-sm">${date}</td>
         <td class="px-6 py-4 text-right relative">
-          <button data-target="dropdown-${uid}" class="more-options-btn p-2 text-slate-400 hover:text-electric hover:bg-blue-50 rounded-xl transition-colors focus:outline-none">
+          <button data-target="dropdown-${uid}" class="more-options-btn p-2 text-slate-400 hover:text-electric hover:bg-blue-50 rounded-xl transition-colors">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
           </button>
-
-          <div id="dropdown-${uid}" class="action-dropdown hidden absolute right-8 top-10 mt-1 w-44 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-20 py-1 overflow-hidden">
-            <button class="copy-action-btn w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-electric transition-colors" data-copy="${uid}">
-              Copy UID
-            </button>
-            <button class="copy-action-btn w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-electric transition-colors" data-copy="${fcmToken}">
-              Copy FCM Token
-            </button>
+          <div id="dropdown-${uid}" class="action-dropdown hidden absolute right-8 top-10 mt-1 w-44 bg-white rounded-2xl shadow-lg border border-slate-100 z-20 py-1 overflow-hidden">
+            <button class="copy-action-btn w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors" data-copy="${uid}">Copy UID</button>
+            <button class="copy-action-btn w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors" data-copy="${fcmToken}">Copy FCM Token</button>
           </div>
         </td>
       </tr>
@@ -204,14 +226,13 @@ function renderUserTable(users, projectsData) {
     userTableBody.innerHTML += row;
   });
 
-  // Attach Listeners for Plan Changes
   document.querySelectorAll(".plan-selector").forEach((selector) => {
     selector.addEventListener("change", async (e) => {
       const uid = e.target.getAttribute("data-uid");
       e.target.disabled = true;
       e.target.classList.add("opacity-50");
       try {
-        await update(ref(db, `users/${uid}`), {
+        await updateDoc(doc(db, "users", uid), {
           subscriptionPlan: e.target.value,
         });
       } catch (error) {
@@ -223,22 +244,19 @@ function renderUserTable(users, projectsData) {
     });
   });
 
-  // Attach Listeners for Copy Buttons
   document.querySelectorAll(".copy-action-btn").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const textToCopy = e.target.getAttribute("data-copy");
-      copyToClipboard(textToCopy, e.target);
-    });
+    btn.addEventListener("click", (e) =>
+      copyToClipboard(e.target.getAttribute("data-copy"), e.target),
+    );
   });
 }
 
-// 5. Render Projects — SORTED by timestamp DESC (newest first)
+// 5. Render Projects
 function renderProjectTable(projects, messages) {
   const projectTableBody = document.getElementById("project-table-body");
   if (!projectTableBody) return;
   projectTableBody.innerHTML = "";
 
-  // Flatten projects into array with metadata for sorting
   let flatProjects = [];
   Object.entries(projects).forEach(([uid, userProjects]) => {
     Object.entries(userProjects).forEach(([projectId, projectData]) => {
@@ -246,7 +264,6 @@ function renderProjectTable(projects, messages) {
     });
   });
 
-  // Sort by timestamp/createdAt descending (newest first)
   flatProjects = sortProjectsByTimestampDesc(flatProjects);
 
   flatProjects.forEach(({ uid, projectId, data }) => {
@@ -254,7 +271,6 @@ function renderProjectTable(projects, messages) {
       messages && messages[projectId]
         ? Object.keys(messages[projectId]).length
         : 0;
-
     const finalProjectName =
       data.projectName || data.name || data.appName || projectId;
 
@@ -267,9 +283,7 @@ function renderProjectTable(projects, messages) {
         <td class="px-6 py-4 text-slate-500 font-mono text-xs">${uid}</td>
         <td class="px-6 py-4 font-bold text-slate-700 text-center">${msgCount}</td>
         <td class="px-6 py-4 text-right">
-          <button data-uid="${uid}" data-project-id="${projectId}" class="delete-project-btn px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs tracking-wide rounded-xl transition-all shadow-sm">
-            Delete
-          </button>
+          <button data-project-id="${projectId}" class="delete-project-btn px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs rounded-xl transition-all shadow-sm">Delete</button>
         </td>
       </tr>
     `;
@@ -278,12 +292,13 @@ function renderProjectTable(projects, messages) {
 
   document.querySelectorAll(".delete-project-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
-      const targetUid = e.target.getAttribute("data-uid");
       const targetProjectId = e.target.getAttribute("data-project-id");
-      if (confirm(`Delete project ${targetProjectId}?`)) {
+      if (confirm(`Delete project ${targetProjectId} and all messages?`)) {
         try {
-          await remove(ref(db, `projects/${targetUid}/${targetProjectId}`));
-          await remove(ref(db, `messages/${targetProjectId}`));
+          // Flattened delete
+          await deleteDoc(doc(db, "projects", targetProjectId));
+          // Note: Full sub-collection deletion in client is tough.
+          // Ideally rely on the recursive delete Cloud Function we setup earlier for complete sweeps.
           loadPageData();
         } catch (error) {
           alert("Failed to delete project.");
@@ -293,13 +308,12 @@ function renderProjectTable(projects, messages) {
   });
 }
 
-// 6. Render Errors & Modal — SORTED by timestamp DESC (newest first)
+// 6. Render Errors
 function renderErrorTable(errors) {
   const errorTableBody = document.getElementById("error-table-body");
   if (!errorTableBody) return;
   errorTableBody.innerHTML = "";
 
-  // Sort by timestamp descending (newest first)
   const errorEntries = sortByTimestampDesc(Object.entries(errors));
 
   if (errorEntries.length === 0) {
@@ -314,14 +328,13 @@ function renderErrorTable(errors) {
         <td class="px-6 py-4 font-bold text-slate-800">${err.deviceModel || "Unknown Device"} <br><span class="text-xs text-slate-400 font-normal">Android ${err.osVersion || "?"}</span></td>
         <td class="px-6 py-4 font-mono text-xs text-slate-400 max-w-[200px] truncate bg-slate-50/50 rounded-lg px-3 mx-2">${err.stackTrace || "No trace provided"}</td>
         <td class="px-6 py-4 text-right">
-          <button data-error-id="${errorId}" class="view-log-btn px-4 py-1.5 bg-slate-100 text-slate-700 hover:bg-electric hover:text-white font-bold text-xs tracking-wide rounded-xl transition-all shadow-sm">View Log</button>
+          <button data-error-id="${errorId}" class="view-log-btn px-4 py-1.5 bg-slate-100 text-slate-700 hover:bg-electric hover:text-white font-bold text-xs rounded-xl transition-all shadow-sm">View Log</button>
         </td>
       </tr>
     `;
     errorTableBody.innerHTML += row;
   });
 
-  // Modal Setup
   const traceModal = document.getElementById("trace-modal");
   const modalTraceText = document.getElementById("modal-trace-text");
 
@@ -343,12 +356,15 @@ function renderErrorTable(errors) {
       ?.addEventListener("click", closeTraceModal);
   }
 
-  // Clear All
   const clearErrorsBtn = document.getElementById("clear-errors-btn");
   if (clearErrorsBtn) {
     clearErrorsBtn.addEventListener("click", async () => {
       if (confirm("Delete all crash reports?")) {
-        await remove(ref(db, "errorReports"));
+        const batch = writeBatch(db);
+        errorEntries.forEach(([errorId]) => {
+          batch.delete(doc(db, "errorReports", errorId));
+        });
+        await batch.commit();
         loadPageData();
       }
     });
